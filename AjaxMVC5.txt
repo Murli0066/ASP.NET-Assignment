@@ -1,0 +1,202 @@
+
+Bundling And Minification 
+---------------------------------------
+In a web application when we reference different files of JavaScripts and style-sheets, the browser sends individual requests to the server to fetch them. 
+
+From ASP .NET 4.5 onward the developer will have the ability to create bundles of .js and .css files together so that the .js files are fetched in a single request from server. 
+
+Bundling not only creates a single entity but also minifies all the content present in the bundles. 
+This improves the performance of requests and requests are completed in a single go.
+
+
+What Bundling Does
+
+	Clubs the files together to form a single file per bundle.
+
+	A bundle may contain many files, but a single request bring whole bundle irrespective of the 	number of files present in it.
+
+	JavaScript Bundles and Stylesheet bundles are different.
+
+	All the file content is minified in size by removing extra spaces, commented texts and 	shortening the names of scoped variables.
+
+	It becomes easy for developer to reference a set of files through single file thus making the 	code clean and more readable.
+
+Steps 
+----------
+To Enable Bundling at Our Application 
+
+we need to install Packages through Package Manage 
+	Tools >> NugetPackageManager >> Package Manager Console 
+To Set the BundleConfig at Views Folder >> Web.config File 
+
+<system.web.webPages.razor>
+    <pages pageBaseType="System.Web.Mvc.WebViewPage">
+      <namespaces>
+        <add namespace="System.Web.Optimization" />
+      </namespaces>
+    </pages>
+  </system.web.webPages.razor>
+
+
+Now Add New File to the project - Script1.js, Script1.js, Script3.js  files  at scripts Folder 
+
+Include some javascript Code in that Files 
+
+At App_Start Add New Class Name it as BundleConfig.cs
+
+public class BundleConfig
+    {
+        public static void RegisterBundles(BundleCollection bundles)
+        {
+            bundles.Add(new ScriptBundle("~/Bundles/MyScript").Include("~/Scripts/Script1.js").Include("~/Scripts/Script3.js").Include("~/Scripts/Script2.js"));
+
+	    bundles.Add(new StyleBundle("~/Content/CSS").Include("~/Content/Bootstrap.min.css").Include("~/Content/Site.css").Include("~/Content/MyStyles.css"));
+        }
+    }
+
+There can be any number bundles 
+Generally we Seperate Style Bundles and Script Bundles
+
+at Global Asax File We need to register this Bundles 
+
+ protected void Application_Start()
+        {
+            BundleConfig.RegisterBundles(System.Web.Optimization.BundleTable.Bundles);
+        }
+
+
+Now On the Home Layout Page we need to refer the Virtual Bundle generally at <Head> 
+
+<head>
+    @Scripts.Render("~/Bundles/MyScript")
+    @Styles.Render("~/Content/CSS")
+</head>
+
+To Enable Minification 
+At BundleConfig File 
+
+public class BundleConfig
+    {
+        public static void RegisterBundles(BundleCollection bundles)
+        {
+            bundles.Add(.............);
+            BundleTable.EnableOptimizations = true;
+        }
+    }
+
+
+Now Run And Check at Chrome DevloperTools  >> Elements >> header Section 
+	and also Check at 
+	 Application >> Frames  >> top >> Scripts 
+
+
+
+
+Working with Ajax in MVC5
+--------------------------------------------
+Explain What is Ajax? 
+
+Generally we render Partial Views though Ajax 
+Example 
+
+Create an ActionMethod Home()- 
+Create a view for the actionMethod with empty template and witha  master page 
+
+Create  Index Action method to list the data 
+Create actionMethod for Create Template and u can include all other action methods if required
+
+at Home.csHtml
+
+use Ajax.ActionLink("TextToDispaly","ActionMethod", new AjaxOptions{Options})
+
+the AjaxOptions are 
+	UpdateTargetId - Id of the element where the ajax result need to be dispalyed 
+	InsertionMode - How to insert the result Replace or Append 
+	HttpMethod - which Http Method to use 
+
+Ex
+
+    @Ajax.ActionLink("ShowAll","Index",
+    new AjaxOptions { UpdateTargetId="divShowAll",
+        InsertionMode =InsertionMode.Replace,
+        HttpMethod ="GET"})
+
+
+    @Ajax.ActionLink("Create", "Create",
+    new AjaxOptions
+    {
+        UpdateTargetId = "divCreate",
+        InsertionMode = InsertionMode.Replace,
+        HttpMethod = "GET"
+    })
+
+ 
+ We need to install unobtrusive Ajax Library--> Install-Package Microsoft.jQuery.Unobtrusive.Ajax-Version 3.1.2
+
+At the main page refer the following .js file:
+<script type="text/javascript" src="~/Scripts/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="~/Scripts/jquery.unobtrusive-ajax"></script>
+
+
+Using Jquery For Async Communication
+-------------------------------------------------
+ajax()
+get()
+getJson()
+getScript()
+post()
+
+To return Data in the form of JSON to a View 
+Steps
+--------------
+Create an action Method which returns JSON Data 
+
+ public JsonResult getJsonData()
+        {
+           return  Json(Models.MyDataContext.ContactList, JsonRequestBehavior.AllowGet);
+        }
+
+In any View include a button 
+
+    <button id="btnget"  >GetJsonData</button>
+    <div id="myDiv"></div>
+
+Now to use Jquery Ajax
+We need to use $.ajax()
+	and should provide JSON Object which specifies Option to ajax()
+	Basic Options are 
+		type		- Http verbs
+		url		- the url from where to get the data 
+		contentType	- what type of Content generally application/json
+		dataType	- type of the data - json 
+		Success:	- function(){} - instructions on success 
+		failure:	- function(){} - instructions on failure
+		
+
+<script type="text/javascript" src="~/Scripts/jquery-1.10.2.js" ></script>
+<script type="text/javascript">
+        $(document).ready(function () {
+            $("#btnget").click(function () {
+                $.ajax({
+                    type:"POST",
+                    url: "/Contact/getJsonData",
+                    contentType:"application/json",
+                    dataType: "json",
+                    success: function (res) {
+                        var tb = "<table>";
+                        $.each(res, function (i, item) {
+                            tb += "<tr><td>" + item.Name + "</td><td>" + item.Mobile + "</td></tr>";
+                        })
+                        tb += "</table>"
+                        $("#myDiv").append(tb);
+                            
+                        alert('Hi......' + res)
+                    },
+                    failure: function () {
+                        alert('Error..')
+                    }
+
+                })
+            })
+        })
+</script>
