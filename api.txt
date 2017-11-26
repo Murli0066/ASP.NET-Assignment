@@ -1,0 +1,271 @@
+ASP.NET Web API is a framework that makes it easy to build HTTP services that reach a broad range of clients, including browsers and mobile devices.
+ ASP.NET Web API is an ideal platform for building RESTful applications on the .NET Framework
+ASP.NET Web API is a framework for building web APIs on top of the .NET Framework.
+Through Web API Using DataAccessLogic we can generate REST Url Which can be easily consumed by Client APs Irrespective of PlatForms 
+
+
+To create a Web API 
+---------------------------
+Steps 
+File -> New Project -> Web -> Asp.netWebApplication  - > Empty -> WebAPI >ok 
+
+At Models -> Add class - Named Books
+ public class Book
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public int Year { get; set; }
+        public decimal Price { get; set; }
+        public string Gener { get; set; }
+    }
+
+At Models -> Add new Class - Name as BookContext 
+public class BookContext
+    {
+        public static List<Book> BookList = new List<Book>()
+        {
+            new Book {Id=1001, Title="ASP.NET", Price=2.2M, Year=2010, Gener="IT" },
+            new Book {Id=1002, Title="WEB API", Price=3.2M, Year=2012, Gener="IT" },
+            new Book {Id=1003, Title="ADO.NET", Price=1.2M, Year=2008, Gener="IT" }
+        };
+
+    }
+
+
+
+Build Once 
+
+At Controllers  ->> Add Controller  - > Empty WebAPI2 Controller >> Name it as BookController
+
+  public class BookController : ApiController
+    {
+       
+        public IHttpActionResult Get()
+        {
+            return Ok(BookContext.BookList);
+        }
+
+        public IHttpActionResult Get(int id)
+        {
+            Book bk = BookContext.BookList.FirstOrDefault(b => b.Id == id);
+            if (bk == null)
+                return NotFound();
+            else
+                return Ok(bk);
+        }
+        public HttpResponseMessage Post([FromBody] Book b)
+        {
+            try
+            {
+                BookContext.BookList.Add(b);
+                var msg = Request.CreateResponse(HttpStatusCode.OK);
+                msg.Headers.Location = new Uri(Request.RequestUri + b.Id.ToString());
+                return msg;
+
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+            }
+        }
+        public HttpResponseMessage Delete(int id)
+        {
+
+            Book bk = BookContext.BookList.FirstOrDefault(b => b.Id == id);
+            if (bk == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Record with id : " + id + "Not Found..");
+            }
+            else
+            {
+                BookContext.BookList.Remove(bk);
+                return Request.CreateResponse(HttpStatusCode.OK);
+            }
+        }
+
+        public HttpResponseMessage Put([FromUri]int id, [FromBody]Book bk)
+        {
+            Book bkf = BookContext.BookList.FirstOrDefault(b => b.Id == id);
+            if (bkf == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, 
+                    "Record with id : " + id + "Not Found..");
+            }
+            else
+            {
+                bkf.Title = bk.Title;
+                bkf.Price = bk.Price;
+                bkf.Year = bk.Year;
+                bkf.Gener = bk.Gener;
+                return Request.CreateResponse(HttpStatusCode.OK);
+            }
+        }
+    }
+
+
+Tools Menu -> ManageNuget packages -> package Manager Console
+
+install-Package Microsoft.AspNet.WebApi.Cors
+
+At App_Start -> webApiConfig 
+
+ public static void Register(HttpConfiguration config)
+        {
+            
+        
+            EnableCorsAttribute cors = new EnableCorsAttribute(origins: "*", headers: "*", methods:"*");
+            config.EnableCors(cors);
+}
+
+
+Now Run the application and check the get Request in the Browser 
+
+For Post , PUT, Delete , We can use Fiddler, Postman, RestClient  tools 
+
+
+Client Clinet Application 
+--------------------------------
+Crea an MVC Empty  Application 
+>> Add a controller Name it as  HomeController
+
+  public class HomeController : Controller
+    {
+        // GET: Home
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        public ActionResult Create()
+        {
+            return View();
+        }
+    }
+
+
+For Index Action Method Add an Empty View ie with any scafolding template 
+
+
+@{
+    ViewBag.Title = "Index";
+}
+
+<script type="text/javascript" src="~/Scripts/jquery-1.10.2.js" ></script>
+<script>
+    $(document).ready(function () {
+        $("#btnShowData").click(function () {
+
+            var tb = "";
+            tb += "<table >"
+            $.ajax({
+                type: "GET",
+                url: "http://localhost:63063/api/Book",
+                contentType: "application/json",
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function(i,item)
+                    {
+                        tb += "<tr><td>" + item.Title + "</td><td>" + item.Price + "</td><td>" + item.Gener + "</td></td>"+item.Year+"</td></tr>";
+                    })
+                    tb += "</table>";
+                    $("#divBooksData").append(tb);
+
+                },
+                failure: function () {
+                    alert('Erorr......');
+                }
+
+            })
+        });
+    });
+</script>
+<h2>Index</h2>
+
+<button id="btnShowData" class="btn btn-primary">ShowData</button>
+<div id="divBooksData">
+
+</div>
+
+
+
+
+At Create Action Method
+add a Empty View 
+
+@{
+    ViewBag.Title = "Create";
+}
+
+<script type="text/javascript" src="~/Scripts/jquery-1.10.2.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#btnSubmit").click(function () {
+            var bookData = {
+                Id: $("#txtid").val(),
+                Title: $("#txttitle").val(),
+                Price: $("#txtprice").val(),
+                Year: $("#txtyear").val(),
+                Gener: $("#txtgener").val(),
+            }
+            $.post("http://localhost:63063/api/Book", bookData)
+                .done(function() {
+                    alert('Success....')
+                })
+            .fail(function(){alert('Erro....Not Saved...')})
+        })
+    })
+
+</script>
+<h2>Create Book</h2>
+
+<div class="form-group">
+    <label >Book Id</label>
+    <input type="text" id="txtbid"  class="form-control"/>
+</div>
+
+
+<div class="form-group">
+    <label >Book Title</label>
+    <input type="text" id="txttitle" class="form-control" />
+</div>
+
+<div class="form-group">
+    <label >Price</label>
+    <input type="text" id="txtprice" class="form-control" />
+</div>
+
+<div class="form-group">
+    <label >Year</label>
+    <input type="text" id="txtyear" class="form-control" />
+</div>
+
+<div class="form-group">
+    <label >Book Gener</label>
+    <input type="text" id="txtgener" class="form-control" />
+</div>
+
+<div class="form-group">
+   
+    <input type="submit" id="btnSubmit" class="btn btn-primary" />
+    <button class="btn btn-danger">Cancel</button>
+</div>
+
+
+Content negotiation 
+-------------------------------
+Application may request the data in Different formats from the webApi Service 
+WebApi Service will look at the RequestHeaders and sends teh apropriate 
+Data Fromat to the Client 
+
+content-Type = application/json
+		application/xml
+		application/html
+Accept 	= application/json
+		application/xml
+		
+
+Can be Done by Media formatters at webapi 
+	Default fromat from WebApi is XML 
+
+
+    
